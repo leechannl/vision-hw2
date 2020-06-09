@@ -1,9 +1,18 @@
-from uwimg import *
+from uwimg import (
+    cylindrical_project,
+    detect_and_draw_corners,
+    find_and_draw_matches,
+    load_image,
+    panorama_image,
+    save_image,
+)
+
 
 def draw_corners():
     im = load_image("data/Rainier1.png")
     detect_and_draw_corners(im, 2, 50, 3)
     save_image(im, "corners")
+
 
 def draw_matches():
     a = load_image("data/Rainier1.png")
@@ -11,11 +20,13 @@ def draw_matches():
     m = find_and_draw_matches(a, b, 2, 50, 3)
     save_image(m, "matches")
 
+
 def easy_panorama():
     im1 = load_image("data/Rainier1.png")
     im2 = load_image("data/Rainier2.png")
     pan = panorama_image(im1, im2, thresh=50)
     save_image(pan, "easy_panorama")
+
 
 def rainier_panorama():
     im1 = load_image("data/Rainier1.png")
@@ -67,9 +78,9 @@ def field_panorama():
     pan5 = panorama_image(pan4, im3, thresh=2, iters=50000, inlier_thresh=3)
     save_image(pan5, "field_panorama_5")
 
+
 draw_corners()
 draw_matches()
 easy_panorama()
-#rainier_panorama()
-#field_panorama()
-
+# rainier_panorama()
+# field_panorama()
