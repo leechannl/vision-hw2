@@ -1,4 +1,5 @@
 #include "image.h"
+#include "log.h"
 #include "matrix.h"
 #include <assert.h>
 #include <math.h>
@@ -78,8 +79,30 @@ void mark_corners(image im, descriptor *d, int n) {
 // float sigma: standard deviation of Gaussian.
 // returns: single row image of the filter.
 image make_1d_gaussian(float sigma) {
-  // TODO: optional, make separable 1d Gaussian.
-  return make_image(1, 1, 1);
+  int six_sigma = (int)ceilf(sigma * 6);
+  int size = six_sigma % 2 ? six_sigma : six_sigma + 1;
+  float multiplier = sqrtf(1 / (TWOPI * sigma * sigma));
+  int mean = size / 2;
+
+  image f = make_image(1, size, 1);
+
+  for (int i = 0; i < size; i++) {
+    float exponent = -(pow(i - mean, 2)) / (2 * sigma * sigma);
+    float v = multiplier * exp(exponent);
+    set_pixel(f, 0, i, 0, v);
+  }
+  l1_normalize(f);
+  return f;
+}
+
+image reverse_1d_guassian(image im) {
+  assert(im.w == 1);
+  assert(im.h != 1);
+  image f = make_image(im.h, 1, 1);
+  for (int i = 0; i < im.h; i++) {
+    f.data[i] = im.data[i];
+  }
+  return f;
 }
 
 // Smooths an image using separable Gaussian filter.
@@ -95,7 +118,11 @@ image smooth_image(image im, float sigma) {
   } else {
     // TODO: optional, use two convolutions with 1d gaussian filter.
     // If you implement, disable the above if check.
-    return copy_image(im);
+    image g = make_1d_gaussian(sigma);
+    image g_ = reverse_1d_guassian(g);
+    image s = convolve_image(im, g, 1);
+    s = convolve_image(s, g_, 1);
+    return s;
   }
 }
 
@@ -125,10 +152,41 @@ image structure_matrix(image im, float sigma) {
 // Estimate the cornerness of each pixel given a structure matrix S.
 // image S: structure matrix for an image.
 // returns: a response map of cornerness calculations.
+//
+// For a 2x2 matrix M:
+//  a1  b1
+//  a2  b2
+//  det(M) = a1*b2 - a2*b1
+//  trace(M) = a1 + b2
+//
+// Matrix S:
+//    IxIx    IxIy
+//    IxIy    IyIy
+//
+// We'll use formulation det(S) - alpha * trace(S)^2, alpha = .06.
+//    cornerness = IxIx*IyIy - IxIy*IxIy - 0.06 * (IxIx + IyIy)^2
+//
+// With image S, 1st channel is Ix^2, 2nd channel is Iy^2, third channel is IxIy.
 image cornerness_response(image S) {
   image R = make_image(S.w, S.h, 1);
-  // TODO: fill in R, "cornerness" for each pixel using the structure matrix.
-  // We'll use formulation det(S) - alpha * trace(S)^2, alpha = .06.
+  const float alpha = 0.06;
+  float IxIx = 0;
+  float IyIy = 0;
+  float IxIy = 0;
+  for (int i = 0; i < S.w; i++) {
+    for (int j = 0; j < S.h; j++) {
+      IxIx = get_pixel(S, i, j, 0);
+      IyIy = get_pixel(S, i, j, 1);
+      IxIy = get_pixel(S, i, j, 2);
+
+      float determinant = IxIx * IyIy - IxIy * IxIy;
+      log_info("determinant: %f", determinant);
+      float trace = IxIx + IyIy;
+      float cornerness = determinant - alpha * trace * trace;
+      set_pixel(R, i, j, 0, cornerness);
+    }
+  }
+
   return R;
 }
 
