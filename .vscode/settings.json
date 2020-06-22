@@ -1,5 +1,5 @@
 {
-  "python.pythonPath": "/home/mm/.pyenv/versions/3.8.2/bin/python",
+  "python.pythonPath": "/home/mm/.pyenv/versions/py3/bin/python",
   "python.formatting.provider": "black",
   "files.associations": {
     "stb_image.h": "c",
@@ -29,5 +29,6 @@
     "ratio": "cpp",
     "typeinfo": "cpp",
     "utility": "cpp"
-  }
+  },
+  "C_Cpp.clang_format_path": "/bin/clang-format-10"
 }
